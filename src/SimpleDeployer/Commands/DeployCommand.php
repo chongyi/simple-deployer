@@ -12,6 +12,7 @@ namespace SimpleDeployer\Commands;
 use Ssh\Authentication\PublicKeyFile;
 use Ssh\Configuration;
 use Ssh\Session;
+use Ssh\SshConfigFileConfiguration;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -44,20 +45,36 @@ class DeployCommand extends Command
             exit(2);
         }
 
-        $sshConfigure = new Configuration('192.168.1.110');
+        if (!isset($host)) {
+            exit(2);
+        }
 
-        if (!is_file($sshConfigure->getIdentity()) || !is_file($sshConfigure->getIdentity() . '.pub')) {
-            $output->writeln("Error: Cannot public key file .");
+        $sshConfigure = new Configuration($host);
+        $sshConfigure->setIdentity(SshConfigFileConfiguration::DEFAULT_SSH_IDENTITY);
+
+        $homePath = isset($_SERVER['HOMEPATH']) ? $_SERVER['HOMEPATH'] : $_SERVER['HOME'];
+
+        if (!($identity = realpath(str_replace('~', $homePath, $sshConfigure->getIdentity())))) {
+            $output->writeln("Error: Cannot get private key file \"$identity\".");
             exit(3);
         }
 
-        $sshAuthentication =
-            new PublicKeyFile($username, $sshConfigure->getIdentity() . '.pub', $sshConfigure->getIdentity());
+        if (!($identityPub = realpath(str_replace('~', $homePath, $sshConfigure->getIdentity() . '.pub')))) {
+            $output->writeln("Error: Cannot get public key file \"$identityPub\".");
+            exit(3);
+        }
+
+        $sshAuthentication
+            = new PublicKeyFile($username, $sshConfigure->getIdentity() . '.pub', $sshConfigure->getIdentity());
 
 
         $sshSession = new Session($sshConfigure, $sshAuthentication);
+        $exec       = $sshSession->getExec();
 
-        $output->write($sshSession->getExec()->run('/usr/bin/env'));
+        $prefix = isset($env) ? "export PATH=\"$env" . ';$PATH" ; ' : '';
+
+        $exec->run($prefix . "mkdir -p $path/$name");
+        $exec->run($prefix . "git clone $repo $path/$name/repo");
     }
 
 }
