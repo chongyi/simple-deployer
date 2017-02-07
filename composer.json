@@ -1,0 +1,21 @@
+{
+    "name": "chongyi/simple-deployer",
+    "description": "简单的自动部署工具",
+    "minimum-stability": "stable",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "chongyi",
+            "email": "xpz3847878@163.com"
+        }
+    ],
+    "require": {
+        "symfony/console": "^3.2",
+        "herzult/php-ssh": "~1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SimpleDeployer\\": "src/SimpleDeployer/"
+        }
+    }
+}
